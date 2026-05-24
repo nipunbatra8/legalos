@@ -29,14 +29,8 @@ import type {
     MikeDocument,
 } from "../shared/types";
 import { ModelToggle } from "../assistant/ModelToggle";
-import { ApiKeyMissingModal } from "../shared/ApiKeyMissingModal";
 import { PreResponseWrapper } from "../shared/PreResponseWrapper";
 import { useUserProfile } from "@/contexts/UserProfileContext";
-import {
-    getModelProvider,
-    isModelAvailable,
-    type ModelProvider,
-} from "@/app/lib/modelAvailability";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -446,14 +440,12 @@ function TRChatInput({
     onCancel,
     model,
     onModelChange,
-    apiKeys,
 }: {
     isLoading: boolean;
     onSubmit: (value: string) => void;
     onCancel: () => void;
     model: string;
     onModelChange: (id: string) => void;
-    apiKeys: { claudeApiKey: string | null; geminiApiKey: string | null };
 }) {
     const [value, setValue] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -495,7 +487,6 @@ function TRChatInput({
                     <ModelToggle
                         value={model}
                         onChange={onModelChange}
-                        apiKeys={apiKeys}
                     />
                     <button
                         type="button"
@@ -607,13 +598,7 @@ export function TRChatPanel({
     onChatIdChange,
 }: Props) {
     const { profile, updateModelPreference } = useUserProfile();
-    const apiKeys = {
-        claudeApiKey: profile?.claudeApiKey ?? null,
-        geminiApiKey: profile?.geminiApiKey ?? null,
-    };
-    const currentModel = profile?.tabularModel ?? "gemini-3-flash-preview";
-    const [apiKeyModalProvider, setApiKeyModalProvider] =
-        useState<ModelProvider | null>(null);
+    const currentModel = profile?.tabularModel ?? "gpt-4.1-mini";
     const [chats, setChats] = useState<TRChat[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | null>(
         initialChatId ?? null,
@@ -957,10 +942,6 @@ export function TRChatPanel({
 
     async function handleSubmit(trimmed: string) {
         if (!trimmed || isLoading) return;
-        if (!isModelAvailable(currentModel, apiKeys)) {
-            setApiKeyModalProvider(getModelProvider(currentModel));
-            return;
-        }
 
         // Build messages array for backend (plain text history)
         const history: { role: string; content: string }[] = messages.map(
@@ -1457,13 +1438,6 @@ export function TRChatPanel({
                 onModelChange={(id) =>
                     updateModelPreference("tabularModel", id)
                 }
-                apiKeys={apiKeys}
-            />
-
-            <ApiKeyMissingModal
-                open={apiKeyModalProvider !== null}
-                provider={apiKeyModalProvider}
-                onClose={() => setApiKeyModalProvider(null)}
             />
         </div>
     );
